@@ -1,5 +1,6 @@
-package com.dih.connector.test.client.connector;
+package com.dih.connector.test.client.connector.api;
 
+import com.dih.connector.test.client.connector.DataspaceConnectorConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 

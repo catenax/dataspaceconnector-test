@@ -1,11 +1,11 @@
 package com.dih.connector.test.service;
 
-import com.dih.connector.test.client.connector.DataspaceConnectorArtifactsApi;
-import com.dih.connector.test.client.connector.DataspaceConnectorCatalogsApi;
-import com.dih.connector.test.client.connector.DataspaceConnectorContractsApi;
-import com.dih.connector.test.client.connector.DataspaceConnectorOffersApi;
-import com.dih.connector.test.client.connector.DataspaceConnectorRepresentationsApi;
-import com.dih.connector.test.client.connector.DataspaceConnectorRulesApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorArtifactsApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorCatalogsApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorContractsApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorOffersApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorRepresentationsApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorRulesApi;
 import com.dih.connector.test.client.connector.model.ArtifactDescription;
 import com.dih.connector.test.client.connector.model.CatalogDescription;
 import com.dih.connector.test.client.connector.model.CatalogList;
@@ -47,7 +47,7 @@ public class CreateOfferService {
     private final DataspaceConnectorRepresentationsApi representationsApi;
     private final DataspaceConnectorArtifactsApi artifactsApi;
 
-    public void createOffer() {
+    public UUID createOffer() {
         var testTimeMillis = System.currentTimeMillis();
 
         // create offer
@@ -101,6 +101,7 @@ public class CreateOfferService {
         log.info("Created: \nOffer {}\nCatalog {}\nRule {}\nContract {}\nRepresentation {}\nArtifact {}", offerId, catalogId,
                 ruleId, contractId, representationId, artifactId);
         log.info("Artifact description {}", artifactDescription);
+        return offerId;
     }
 
     private OfferDescription getOfferDescription(long testTimeMillis) {
