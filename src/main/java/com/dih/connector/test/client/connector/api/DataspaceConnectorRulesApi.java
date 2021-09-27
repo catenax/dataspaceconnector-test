@@ -1,5 +1,6 @@
-package com.dih.connector.test.client.connector;
+package com.dih.connector.test.client.connector.api;
 
+import com.dih.connector.test.client.connector.DataspaceConnectorConfiguration;
 import com.dih.connector.test.client.connector.model.RuleDescription;
 import com.dih.connector.test.client.connector.model.RuleResponse;
 import org.springframework.cloud.openfeign.FeignClient;

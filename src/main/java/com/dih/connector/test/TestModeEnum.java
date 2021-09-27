@@ -1,4 +1,4 @@
-package com.dih.connector.test.dto;
+package com.dih.connector.test;
 
 public enum TestModeEnum {
     REGISTER,
