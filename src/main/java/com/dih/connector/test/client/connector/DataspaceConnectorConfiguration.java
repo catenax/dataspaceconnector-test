@@ -2,7 +2,6 @@ package com.dih.connector.test.client.connector;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.jsonldjava.core.DocumentLoader;
 import com.github.jsonldjava.core.JsonLdOptions;
 import com.github.jsonldjava.core.JsonLdProcessor;
 import com.github.jsonldjava.utils.JsonUtils;
@@ -17,10 +16,12 @@ import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.http.converter.AbstractHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 
@@ -74,6 +75,15 @@ public class DataspaceConnectorConfiguration {
     public RestTemplate restTemplateDefault() {
         var rt = new RestTemplate();
         rt.getInterceptors().add(authInterceptor());
+        return rt;
+    }
+
+    @Bean(name = "utf16string")
+    public RestTemplate restTemplateUTF16BEString() {
+        var rt = new RestTemplate();
+        rt.getInterceptors().add(authInterceptor());
+        rt.getMessageConverters().stream().filter(StringHttpMessageConverter.class::isInstance).findFirst().ifPresent(rt.getMessageConverters()::remove);
+        rt.getMessageConverters().add(new StringHttpMessageConverter(StandardCharsets.UTF_16BE));
         return rt;
     }
 }

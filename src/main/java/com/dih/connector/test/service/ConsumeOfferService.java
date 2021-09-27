@@ -14,7 +14,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -41,6 +40,10 @@ public class ConsumeOfferService {
 
     @Qualifier("json-default")
     private final RestTemplate restTemplateDefault;
+
+    @Qualifier("utf16string")
+    private final RestTemplate restTemplateUtf16BEString;
+
 
     private ObjectMapper objectMapper;
 
@@ -85,7 +88,6 @@ public class ConsumeOfferService {
                 .queryParam("download", "true");
 
         var body = getContractAgreementPayload(permissionJson.get("@id").asText(), artifactNode.path("@id").asText());
-        log.info(objectMapper.writeValueAsString(body));
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         HttpEntity<JsonNode> entity = new HttpEntity<>(body, headers);
         return  restTemplateDefault.exchange(
@@ -113,14 +115,9 @@ public class ConsumeOfferService {
     private String getConsumerData(AgreementResponse agreementResponse) {
         var artifactsJson = restTemplateDefault.getForObject(agreementResponse.getSelfHref() + "/artifacts", JsonNode.class);
         var dataUrl = artifactsJson.get("_embedded").get("artifacts").get(0).get("_links").get("self").get("href").asText() + "/data";
-        return restTemplateDefault.getForObject(dataUrl, String.class);
-    }
-
-    private String getData(UUID artifactId) {
-        return restTemplateDefault.getForObject(consumerBaseUrl + "/api/artifacts/{id}/data?download={download}",
-                String.class,
-                artifactId,
-                true
-        );
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(dataUrl)
+                .queryParam("agreementUri", agreementResponse.getRemoteId())
+                .queryParam("download", true);
+        return restTemplateUtf16BEString.getForObject(builder.toUriString(), String.class);
     }
 }
