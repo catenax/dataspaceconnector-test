@@ -1,0 +1,43 @@
+{
+  "properties": [
+    {
+      "name": "producer.username",
+      "type": "java.lang.String",
+      "description": "username to access producer connector."
+    },
+    {
+      "name": "producer.password",
+      "type": "java.lang.String",
+      "description": "password to access producer connector."
+    },
+    {
+      "name": "producer.baseUrl",
+      "type": "java.lang.String",
+      "description": "producer connector endpoint."
+    },
+    {
+      "name": "consumer.username",
+      "type": "java.lang.String",
+      "description": "username to access consumer connector."
+    },
+    {
+      "name": "consumer.password",
+      "type": "java.lang.String",
+      "description": "password to access consumer connector."
+    },
+    {
+      "name": "consumer.baseUrl",
+      "type": "java.lang.String",
+      "description": "consumer connector endpoint."
+    },
+    {
+      "name": "offerId",
+      "type": "java.lang.String",
+      "description": "registered at producer side offerId."
+    },
+    {
+      "name": "test.mode",
+      "type": "java.lang.String",
+      "description": "Either REGISTER/CONSUME or nothing."
+    }
+  ] }

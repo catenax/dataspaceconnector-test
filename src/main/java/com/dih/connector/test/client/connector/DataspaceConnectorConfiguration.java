@@ -27,20 +27,27 @@ import java.util.List;
 
 @Configuration
 public class DataspaceConnectorConfiguration {
-    @Value("${connector.username}")
-    private String username;
 
-    @Value("${connector.password}")
-    private String password;
+    @Value("${producer.username}")
+    private String producerUsername;
+
+    @Value("${producer.password}")
+    private String producerPassword;
+
+    @Value("${consumer.username}")
+    private String consumerUsername;
+
+    @Value("${consumer.password}")
+    private String consumerPassword;
 
     @Bean
     public BasicAuthRequestInterceptor adminAuth() {
-        return new BasicAuthRequestInterceptor(username, password);
+        return new BasicAuthRequestInterceptor(producerUsername, producerPassword);
     }
 
     @Bean
     public BasicAuthenticationInterceptor authInterceptor() {
-        return new BasicAuthenticationInterceptor(username, password);
+        return new BasicAuthenticationInterceptor(consumerUsername, consumerPassword);
     }
 
     @Bean(name = "json-ld")

@@ -1,25 +1,14 @@
 package com.dih.connector.test.service;
 
-import com.dih.connector.test.client.connector.api.DataspaceConnectorArtifactsApi;
-import com.dih.connector.test.client.connector.api.DataspaceConnectorCatalogsApi;
-import com.dih.connector.test.client.connector.api.DataspaceConnectorContractsApi;
-import com.dih.connector.test.client.connector.api.DataspaceConnectorOffersApi;
-import com.dih.connector.test.client.connector.api.DataspaceConnectorRepresentationsApi;
-import com.dih.connector.test.client.connector.api.DataspaceConnectorRulesApi;
-import com.dih.connector.test.client.connector.model.ArtifactDescription;
-import com.dih.connector.test.client.connector.model.CatalogDescription;
-import com.dih.connector.test.client.connector.model.CatalogList;
-import com.dih.connector.test.client.connector.model.ContractDescription;
-import com.dih.connector.test.client.connector.model.GetListResponse;
-import com.dih.connector.test.client.connector.model.OfferDescription;
-import com.dih.connector.test.client.connector.model.ResourceRepresentationDescription;
-import com.dih.connector.test.client.connector.model.RuleDescription;
+import com.dih.connector.test.client.connector.api.*;
+import com.dih.connector.test.client.connector.model.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -32,13 +21,13 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CreateOfferService {
+public class ProducerOfferService {
     private static final String TEST_CATALOG = "test_catalog";
     private static final String PROVIDE_ACCESS_POLICY = "{ \"@context\" : { \"ids\" : \"https://w3id.org/idsa/core/\", \"idsc\" : \"https://w3id.org/idsa/code/\" }, \"@type\" : \"ids:Permission\", \"@id\" : \"https://w3id.org/idsa/autogen/permission/658ca300-4042-4804-839a-3c9548dcc26e\", \"ids:action\" : [ { \"@id\" : \"https://w3id.org/idsa/code/USE\" } ], \"ids:description\" : [ { \"@value\" : \"provide-access\", \"@type\" : \"http://www.w3.org/2001/XMLSchema#string\" } ], \"ids:title\" : [ { \"@value\" : \"Allow Data Usage\", \"@type\" : \"http://www.w3.org/2001/XMLSchema#string\" } ] }";
     private static final String CONTRACT_END_DATE = LocalDate.of(2999, 1, 1).atStartOfDay(ZoneOffset.UTC).toString();
 
-    @Value("${connector.baseUrl}")
-    private URI connectorBaseUrl;
+    @Value("${producer.baseUrl}")
+    private URI producerBaseUrl;
 
     private final DataspaceConnectorOffersApi offersApi;
     private final DataspaceConnectorCatalogsApi catalogsApi;
@@ -47,56 +36,63 @@ public class CreateOfferService {
     private final DataspaceConnectorRepresentationsApi representationsApi;
     private final DataspaceConnectorArtifactsApi artifactsApi;
 
+    private URI producerApiUri;
+
+    @PostConstruct
+    public void init() {
+        producerApiUri = producerBaseUrl.resolve(producerBaseUrl.getPath() + "/api");
+    }
+
     public UUID createOffer() {
         var testTimeMillis = System.currentTimeMillis();
 
         // create offer
-        var offerResponse = offersApi.registerOffer(connectorBaseUrl, getOfferDescription(testTimeMillis));
+        var offerResponse = offersApi.registerOffer(producerApiUri, getOfferDescription(testTimeMillis));
         var offerId = offerResponse.getUUIDFromLink();
         var offerSelfHref = offerResponse.getSelfHref();
 
         // get or create catalog
-        var catalogResponse = Optional.ofNullable(catalogsApi.getAllCatalogs(connectorBaseUrl))
+        var catalogResponse = Optional.ofNullable(catalogsApi.getAllCatalogs(producerApiUri))
                 .map(GetListResponse::getEmbedded)
                 .map(CatalogList::getCatalogs)
                 .orElseGet(ArrayList::new)
                 .stream()
                 .filter(it -> TEST_CATALOG.equals(it.getTitle()))
                 .findFirst()
-                .orElseGet(() -> catalogsApi.createCatalog(connectorBaseUrl, getCatalogDescription()));
+                .orElseGet(() -> catalogsApi.createCatalog(producerApiUri, getCatalogDescription()));
         var catalogId = catalogResponse.getUUIDFromLink();
 
         // link offer with catalog
-        catalogsApi.linkOffer(connectorBaseUrl, catalogId, List.of(offerResponse.getSelfHref()));
+        catalogsApi.linkOffer(producerApiUri, catalogId, List.of(offerResponse.getSelfHref()));
 
         // create rule
-        var ruleResponse = rulesApi.registerRule(connectorBaseUrl, getRuleDescription(testTimeMillis));
+        var ruleResponse = rulesApi.registerRule(producerApiUri, getRuleDescription(testTimeMillis));
         var ruleId = ruleResponse.getUUIDFromLink();
         var ruleSelfHref = ruleResponse.getSelfHref();
 
         // create contract
-        var contractResponse = contractsApi.createContract(connectorBaseUrl, getContractDescription(testTimeMillis));
+        var contractResponse = contractsApi.createContract(producerApiUri, getContractDescription(testTimeMillis));
         var contractId = contractResponse.getUUIDFromLink();
 
-        contractsApi.linkRules(connectorBaseUrl, contractId, List.of(ruleSelfHref));
-        contractsApi.linkOffers(connectorBaseUrl, contractId, List.of(offerSelfHref));
+        contractsApi.linkRules(producerApiUri, contractId, List.of(ruleSelfHref));
+        contractsApi.linkOffers(producerApiUri, contractId, List.of(offerSelfHref));
 
         // create representation
-        var representationResponse = representationsApi.registerRepresentation(connectorBaseUrl, getRepresentation(testTimeMillis));
+        var representationResponse = representationsApi.registerRepresentation(producerApiUri, getRepresentation(testTimeMillis));
         var representationId = representationResponse.getUUIDFromLink();
         var representationSelfHref = representationResponse.getSelfHref();
 
         // create artifact
         var artifactDescription = getArtifactDescription(testTimeMillis);
-        var artifactResponse = artifactsApi.registerArtifact(connectorBaseUrl, artifactDescription);
+        var artifactResponse = artifactsApi.registerArtifact(producerApiUri, artifactDescription);
         var artifactId = artifactResponse.getUUIDFromLink();
         var artifactSelfHref = artifactResponse.getSelfHref();
 
         // link artifact with representation
-        representationsApi.linkArtifacts(connectorBaseUrl, representationId, List.of(artifactSelfHref));
+        representationsApi.linkArtifacts(producerApiUri, representationId, List.of(artifactSelfHref));
 
         // link representation with resource
-        offersApi.linkRepresentations(connectorBaseUrl, offerId, List.of(representationSelfHref));
+        offersApi.linkRepresentations(producerApiUri, offerId, List.of(representationSelfHref));
 
         log.info("Created: \nOffer {}\nCatalog {}\nRule {}\nContract {}\nRepresentation {}\nArtifact {}", offerId, catalogId,
                 ruleId, contractId, representationId, artifactId);
@@ -148,7 +144,7 @@ public class CreateOfferService {
     private ArtifactDescription getArtifactDescription(long testTimeMillis) {
         return ArtifactDescription.builder()
                 .title("Artifact_" + testTimeMillis)
-                .value("Content: " + UUID.randomUUID())
+                .value("Hello, World! " + UUID.randomUUID())
                 .build();
     }
 }
