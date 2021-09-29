@@ -17,18 +17,21 @@ public class CommandLineRunnerService implements ApplicationRunner {
     @Value("${test.mode}")
     private TestModeEnum testMode;
 
-    private final CreateOfferService createOfferService;
-    private final ConsumeOfferService consumeOfferService;
+    @Value("${offerId}")
+    private UUID offerId;
+
+    private final ProducerOfferService producerOfferService;
+    private final ConsumerOfferService consumerOfferService;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-//        if (TestModeEnum.REGISTER.equals(testMode)) {
-//            createOfferService.createOffer();
-//        } else {
-//            consumeOfferService.consumeOffer(UUID.fromString("9bda348d-ff44-4f1b-9270-a9c60b976f73"));
-//        }
-        var oferId = createOfferService.createOffer();
-        consumeOfferService.consumeOffer(oferId);
-        //consumeOfferService.consumeOffer(UUID.fromString("73b72808-b29a-454c-9820-83fc0d85abbc"));
+        if (TestModeEnum.REGISTER.equals(testMode)) {
+            producerOfferService.createOffer();
+        } else if (TestModeEnum.CONSUME.equals(testMode)) {
+            consumerOfferService.consumeOffer(offerId);
+        } else {
+            var oferId = producerOfferService.createOffer();
+            consumerOfferService.consumeOffer(oferId);
+        }
     }
 }

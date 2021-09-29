@@ -27,12 +27,12 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ConsumeOfferService {
+public class ConsumerOfferService {
 
     @Value("${consumer.baseUrl}")
     private URI consumerBaseUrl;
 
-    @Value("${connector.baseUrl}")
+    @Value("${producer.baseUrl}")
     private URI producerBaseUrl;
 
     @Qualifier("json-ld")
@@ -60,10 +60,10 @@ public class ConsumeOfferService {
         var url = consumerBaseUrl + "/api/ids/description";
         HttpHeaders headers = new HttpHeaders();
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
-                .queryParam("recipient", producerBaseUrl + "/ids/data")
-                .queryParam("elementId", producerBaseUrl + "/offers/" + offerId.toString());
+                .queryParam("recipient", producerBaseUrl.normalize() + "/api/ids/data")
+                .queryParam("elementId", producerBaseUrl.normalize() + "/api/offers/" + offerId.toString());
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        HttpEntity<String> entity = new HttpEntity<String>(headers);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
         var body = restTemplateLd.exchange(
                 builder.toUriString(),
                 HttpMethod.POST,
@@ -78,12 +78,12 @@ public class ConsumeOfferService {
     }
 
 
-    private AgreementResponse negotiateContract(JsonNode permissionJson, JsonNode artifactNode, UUID offerId) throws IOException {
+    private AgreementResponse negotiateContract(JsonNode permissionJson, JsonNode artifactNode, UUID offerId) {
         var url = consumerBaseUrl + "/api/ids/contract";
         HttpHeaders headers = new HttpHeaders();
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
-                .queryParam("recipient", producerBaseUrl + "/ids/data")
-                .queryParam("resourceIds", producerBaseUrl + "/offers/" + offerId.toString())
+                .queryParam("recipient", producerBaseUrl.normalize() + "/api/ids/data")
+                .queryParam("resourceIds", producerBaseUrl.normalize() + "/api/offers/" + offerId.toString())
                 .queryParam("artifactIds", artifactNode.path("@id").asText())
                 .queryParam("download", "true");
 
