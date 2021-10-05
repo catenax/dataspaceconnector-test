@@ -16,6 +16,16 @@
       "description": "producer connector endpoint."
     },
     {
+      "name": "producer.data.text",
+      "type": "java.lang.String",
+      "description": "Text to move between the Producer and the Consumer."
+    },
+    {
+      "name": "producer.data.url",
+      "type": "java.lang.String",
+      "description": "Remote URL to get the data into Producer from."
+    },
+    {
       "name": "consumer.username",
       "type": "java.lang.String",
       "description": "username to access consumer connector."
@@ -31,13 +41,13 @@
       "description": "consumer connector endpoint."
     },
     {
-      "name": "offerId",
+      "name": "consumer.data.offerId",
       "type": "java.lang.String",
       "description": "registered at producer side offerId."
     },
     {
-      "name": "test.mode",
-      "type": "java.lang.String",
-      "description": "Either REGISTER/CONSUME or nothing."
+      "name": "consumer.data.text",
+      "type": "java.lang.Boolean",
+      "description": "if we receive text from the connector."
     }
   ] }
