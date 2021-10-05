@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -19,10 +20,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Slf4j
 @Service
@@ -34,6 +35,9 @@ public class ConsumerOfferService {
 
     @Value("${producer.baseUrl}")
     private URI producerBaseUrl;
+
+    @Value("${consumer.data.text:false}")
+    private boolean isText;
 
     @Qualifier("json-ld")
     private final RestTemplate restTemplateLd;
@@ -56,7 +60,7 @@ public class ConsumerOfferService {
         objectMapper.setDefaultPrettyPrinter(prettyPrinter);
     }
 
-    public void consumeOffer(UUID offerId) throws IOException {
+    public void consumeOffer(UUID offerId) {
         var url = consumerBaseUrl + "/api/ids/description";
         HttpHeaders headers = new HttpHeaders();
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
@@ -73,8 +77,14 @@ public class ConsumerOfferService {
         var permissionJsonNode = body.get("https://w3id.org/idsa/core/contractOffer").get("https://w3id.org/idsa/core/permission");
         var artifactNode = body.get("https://w3id.org/idsa/core/representation").get("https://w3id.org/idsa/core/instance");
         var agreementResponse = negotiateContract(permissionJsonNode, artifactNode, offerId);
-        var movedData = getConsumerData(agreementResponse);
-        log.info("Data: {}", movedData );
+        if (isText) {
+            var movedData = getConsumerData(agreementResponse, dataUrl -> restTemplateUtf16BEString.getForObject(dataUrl, String.class));
+            log.info("Data: {}", movedData );
+        } else {
+            byte[] data = getConsumerData(agreementResponse, dataUrl -> restTemplateDefault.getForObject(dataUrl, byte[].class));
+            String md5 = DigestUtils.md5Hex(data);
+            log.info("Consumer data MD5SUM={}", md5 );
+        }
     }
 
 
@@ -112,12 +122,13 @@ public class ConsumerOfferService {
         return objectMapper.createArrayNode().add(node);
     }
 
-    private String getConsumerData(AgreementResponse agreementResponse) {
+    private <T> T getConsumerData(AgreementResponse agreementResponse, Function<String, T> httpGet) {
         var artifactsJson = restTemplateDefault.getForObject(agreementResponse.getSelfHref() + "/artifacts", JsonNode.class);
         var dataUrl = artifactsJson.get("_embedded").get("artifacts").get(0).get("_links").get("self").get("href").asText() + "/data";
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(dataUrl)
                 .queryParam("agreementUri", agreementResponse.getRemoteId())
                 .queryParam("download", true);
-        return restTemplateUtf16BEString.getForObject(builder.toUriString(), String.class);
+        return httpGet.apply(builder.toUriString());
     }
+
 }

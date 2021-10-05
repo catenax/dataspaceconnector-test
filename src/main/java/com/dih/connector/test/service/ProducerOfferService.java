@@ -1,20 +1,37 @@
 package com.dih.connector.test.service;
 
-import com.dih.connector.test.client.connector.api.*;
-import com.dih.connector.test.client.connector.model.*;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorArtifactsApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorCatalogsApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorContractsApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorOffersApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorRepresentationsApi;
+import com.dih.connector.test.client.connector.api.DataspaceConnectorRulesApi;
+import com.dih.connector.test.client.connector.model.ArtifactDescription;
+import com.dih.connector.test.client.connector.model.CatalogDescription;
+import com.dih.connector.test.client.connector.model.CatalogList;
+import com.dih.connector.test.client.connector.model.ContractDescription;
+import com.dih.connector.test.client.connector.model.GetListResponse;
+import com.dih.connector.test.client.connector.model.OfferDescription;
+import com.dih.connector.test.client.connector.model.ResourceRepresentationDescription;
+import com.dih.connector.test.client.connector.model.RuleDescription;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,6 +45,12 @@ public class ProducerOfferService {
 
     @Value("${producer.baseUrl}")
     private URI producerBaseUrl;
+
+    @Value("${producer.data.text:#{null}}")
+    private String dataText;
+
+    @Value("${producer.data.url:#{null}}")
+    private URI remoteDataUri;
 
     private final DataspaceConnectorOffersApi offersApi;
     private final DataspaceConnectorCatalogsApi catalogsApi;
@@ -43,7 +66,7 @@ public class ProducerOfferService {
         producerApiUri = producerBaseUrl.resolve(producerBaseUrl.getPath() + "/api");
     }
 
-    public UUID createOffer() {
+    public UUID createOffer() throws IOException {
         var testTimeMillis = System.currentTimeMillis();
 
         // create offer
@@ -97,6 +120,12 @@ public class ProducerOfferService {
         log.info("Created: \nOffer {}\nCatalog {}\nRule {}\nContract {}\nRepresentation {}\nArtifact {}", offerId, catalogId,
                 ruleId, contractId, representationId, artifactId);
         log.info("Artifact description {}", artifactDescription);
+        if (Objects.nonNull(remoteDataUri)) {
+            try (InputStream is = remoteDataUri.toURL().openConnection().getInputStream()) {
+                String md5 = DigestUtils.md5Hex(is);
+                log.info("Remote data MD5SUM={}", md5);
+            }
+        }
         return offerId;
     }
 
@@ -142,9 +171,12 @@ public class ProducerOfferService {
     }
 
     private ArtifactDescription getArtifactDescription(long testTimeMillis) {
-        return ArtifactDescription.builder()
-                .title("Artifact_" + testTimeMillis)
-                .value("Hello, World! " + UUID.randomUUID())
-                .build();
+        var builder = ArtifactDescription.builder().title("Artifact_" + testTimeMillis);
+        if (StringUtils.isNotBlank(dataText)) {
+            builder.value(dataText);
+        } else if (remoteDataUri != null) {
+            builder.accessUrl(remoteDataUri);
+        }
+        return builder.build();
     }
 }

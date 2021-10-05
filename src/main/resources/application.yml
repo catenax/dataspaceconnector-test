@@ -4,9 +4,13 @@ producer:
     username:
     password:
     baseUrl: https://catenaxdev001akssrv.germanywestcentral.cloudapp.azure.com/producer
+    data:
+#        text: "Hello, world!"
+        url: https://play.nintendo.com/images/Masthead_Kirby.17345b1513ac044897cfc243542899dce541e8dc.9afde10b.png
 consumer:
     username:
     password:
     baseUrl: https://catenaxdev001akssrv.germanywestcentral.cloudapp.azure.com/consumer
-offerId: 40ba6117-c10e-4eb3-b4e2-9321e27286fc
-test.mode: CONSUME
+    data:
+        text: false
+#        offerId: ff9eec5a-658f-404f-8dd7-53fe19adc0ab
