@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -81,7 +82,7 @@ public class ConsumerOfferService {
             log.info("Data: {}", movedData );
         } else {
             byte[] data = getConsumerData(agreementResponse, dataUrl -> restTemplateDefault.getForObject(dataUrl, byte[].class));
-            String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(data);
+            String md5 = DigestUtils.md5Hex(data);
             log.info("Consumer data MD5SUM={}", md5 );
         }
     }

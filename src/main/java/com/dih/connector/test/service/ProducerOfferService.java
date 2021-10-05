@@ -16,6 +16,7 @@ import com.dih.connector.test.client.connector.model.ResourceRepresentationDescr
 import com.dih.connector.test.client.connector.model.RuleDescription;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
 
 @Slf4j
 @Service
@@ -122,7 +122,7 @@ public class ProducerOfferService {
         log.info("Artifact description {}", artifactDescription);
         if (Objects.nonNull(remoteDataUri)) {
             try (InputStream is = remoteDataUri.toURL().openConnection().getInputStream()) {
-                String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(is);
+                String md5 = DigestUtils.md5Hex(is);
                 log.info("Remote data MD5SUM={}", md5);
             }
         }
@@ -171,12 +171,12 @@ public class ProducerOfferService {
     }
 
     private ArtifactDescription getArtifactDescription(long testTimeMillis) {
-        return ((java.util.function.UnaryOperator<ArtifactDescription.ArtifactDescriptionBuilder>) artifactDescriptionBuilder -> artifactDescriptionBuilder.title("Artifact_" + testTimeMillis))
-                .andThen(
-                        StringUtils.isNoneBlank(dataText) ? artifactDescriptionBuilder -> artifactDescriptionBuilder.value(dataText)
-                                                          : Objects.nonNull(remoteDataUri) ? artifactDescriptionBuilder -> artifactDescriptionBuilder.accessUrl(remoteDataUri)
-                                                                                           : Function.identity()
-                ).andThen(ArtifactDescription.ArtifactDescriptionBuilder::build)
-                .apply(ArtifactDescription.builder());
+        var builder = ArtifactDescription.builder().title("Artifact_" + testTimeMillis);
+        if (StringUtils.isNotBlank(dataText)) {
+            builder.value(dataText);
+        } else if (remoteDataUri != null) {
+            builder.accessUrl(remoteDataUri);
+        }
+        return builder.build();
     }
 }
