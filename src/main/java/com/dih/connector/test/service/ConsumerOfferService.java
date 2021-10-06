@@ -55,19 +55,19 @@ public class ConsumerOfferService {
     public void init() {
         objectMapper = new ObjectMapper();
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        DefaultPrettyPrinter prettyPrinter = new DefaultPrettyPrinter();
+        var prettyPrinter = new DefaultPrettyPrinter();
         prettyPrinter.indentArraysWith(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE);
         objectMapper.setDefaultPrettyPrinter(prettyPrinter);
     }
 
     public void consumeOffer(UUID offerId) {
         var url = consumerBaseUrl + "/api/ids/description";
-        HttpHeaders headers = new HttpHeaders();
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
+        var headers = new HttpHeaders();
+        var builder = UriComponentsBuilder.fromHttpUrl(url)
                 .queryParam("recipient", producerBaseUrl.normalize() + "/api/ids/data")
                 .queryParam("elementId", producerBaseUrl.normalize() + "/api/offers/" + offerId.toString());
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+        var entity = new HttpEntity<String>(headers);
         var body = Optional.ofNullable(
                 restTemplateLd.postForObject(
                         builder.toUriString(),
@@ -93,8 +93,8 @@ public class ConsumerOfferService {
 
     private AgreementResponse negotiateContract(JsonNode permissionJson, JsonNode artifactNode, UUID offerId) {
         var url = consumerBaseUrl + "/api/ids/contract";
-        HttpHeaders headers = new HttpHeaders();
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
+        var headers = new HttpHeaders();
+        var builder = UriComponentsBuilder.fromHttpUrl(url)
                 .queryParam("recipient", producerBaseUrl.normalize() + "/api/ids/data")
                 .queryParam("resourceIds", producerBaseUrl.normalize() + "/api/offers/" + offerId.toString())
                 .queryParam("artifactIds", artifactNode.path("@id").asText())
@@ -102,7 +102,7 @@ public class ConsumerOfferService {
 
         var body = getContractAgreementPayload(permissionJson.get("@id").asText(), artifactNode.path("@id").asText());
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        HttpEntity<JsonNode> entity = new HttpEntity<>(body, headers);
+        var entity = new HttpEntity<>(body, headers);
         return  restTemplateDefault.postForObject(
                 builder.toUriString(),
                 entity,
@@ -137,7 +137,7 @@ public class ConsumerOfferService {
                 .map(JsonNode::asText)
                 .map(s -> s.concat("/data"))
                 .orElseThrow( () -> new RuntimeException("Couldn't construct data retrieval URL from Artifact JSON"));
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(dataUrl)
+        var builder = UriComponentsBuilder.fromHttpUrl(dataUrl)
                 .queryParam("agreementUri", agreementResponse.getRemoteId())
                 .queryParam("download", true);
         return httpGet.apply(builder.toUriString());
