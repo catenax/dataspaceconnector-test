@@ -1,16 +1,16 @@
 logging:
     level.com.dih.connector.test: DEBUG
 producer:
-    username:
+    username: admin
     password:
     baseUrl: https://catenaxdev001akssrv.germanywestcentral.cloudapp.azure.com/producer
     data:
 #        text: "Hello, world!"
         url: https://play.nintendo.com/images/Masthead_Kirby.17345b1513ac044897cfc243542899dce541e8dc.9afde10b.png
 consumer:
-    username:
+    username: admin
     password:
     baseUrl: https://catenaxdev001akssrv.germanywestcentral.cloudapp.azure.com/consumer
     data:
         text: false
-#        offerId: ff9eec5a-658f-404f-8dd7-53fe19adc0ab
+        offerId: ff9eec5a-658f-404f-8dd7-53fe19adc0ab
