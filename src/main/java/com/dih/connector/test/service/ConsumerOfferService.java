@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -22,6 +21,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.annotation.PostConstruct;
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -55,27 +55,30 @@ public class ConsumerOfferService {
     public void init() {
         objectMapper = new ObjectMapper();
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        DefaultPrettyPrinter prettyPrinter = new DefaultPrettyPrinter();
+        var prettyPrinter = new DefaultPrettyPrinter();
         prettyPrinter.indentArraysWith(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE);
         objectMapper.setDefaultPrettyPrinter(prettyPrinter);
     }
 
     public void consumeOffer(UUID offerId) {
         var url = consumerBaseUrl + "/api/ids/description";
-        HttpHeaders headers = new HttpHeaders();
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
+        var headers = new HttpHeaders();
+        var builder = UriComponentsBuilder.fromHttpUrl(url)
                 .queryParam("recipient", producerBaseUrl.normalize() + "/api/ids/data")
                 .queryParam("elementId", producerBaseUrl.normalize() + "/api/offers/" + offerId.toString());
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-        var body = restTemplateLd.exchange(
-                builder.toUriString(),
-                HttpMethod.POST,
-                entity,
-                JsonNode.class
-        ).getBody();
-        var permissionJsonNode = body.get("https://w3id.org/idsa/core/contractOffer").get("https://w3id.org/idsa/core/permission");
-        var artifactNode = body.get("https://w3id.org/idsa/core/representation").get("https://w3id.org/idsa/core/instance");
+        var entity = new HttpEntity<String>(headers);
+        var body = Optional.ofNullable(
+                restTemplateLd.postForObject(
+                        builder.toUriString(),
+                        entity,
+                        JsonNode.class
+                )
+        );
+        var permissionJsonNode = body.map(b -> b.get("https://w3id.org/idsa/core/contractOffer")).map(b -> b.get("https://w3id.org/idsa/core/permission"))
+                .orElseThrow(() -> new RuntimeException("Cannot find Permission section in Offer Description"));
+        var artifactNode = body.map(b->b.get("https://w3id.org/idsa/core/representation")).map(b -> b.get("https://w3id.org/idsa/core/instance"))
+                .orElseThrow(() -> new RuntimeException("Cannot find Instance section in Offer Description"));
         var agreementResponse = negotiateContract(permissionJsonNode, artifactNode, offerId);
         if (isText) {
             var movedData = getConsumerData(agreementResponse, dataUrl -> restTemplateUtf16BEString.getForObject(dataUrl, String.class));
@@ -90,8 +93,8 @@ public class ConsumerOfferService {
 
     private AgreementResponse negotiateContract(JsonNode permissionJson, JsonNode artifactNode, UUID offerId) {
         var url = consumerBaseUrl + "/api/ids/contract";
-        HttpHeaders headers = new HttpHeaders();
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
+        var headers = new HttpHeaders();
+        var builder = UriComponentsBuilder.fromHttpUrl(url)
                 .queryParam("recipient", producerBaseUrl.normalize() + "/api/ids/data")
                 .queryParam("resourceIds", producerBaseUrl.normalize() + "/api/offers/" + offerId.toString())
                 .queryParam("artifactIds", artifactNode.path("@id").asText())
@@ -99,13 +102,12 @@ public class ConsumerOfferService {
 
         var body = getContractAgreementPayload(permissionJson.get("@id").asText(), artifactNode.path("@id").asText());
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        HttpEntity<JsonNode> entity = new HttpEntity<>(body, headers);
-        return  restTemplateDefault.exchange(
+        var entity = new HttpEntity<>(body, headers);
+        return  restTemplateDefault.postForObject(
                 builder.toUriString(),
-                HttpMethod.POST,
                 entity,
                 AgreementResponse.class
-        ).getBody();
+        );
     }
 
     private JsonNode getContractAgreementPayload(String ruleId, String artifactId) {
@@ -123,9 +125,19 @@ public class ConsumerOfferService {
     }
 
     private <T> T getConsumerData(AgreementResponse agreementResponse, Function<String, T> httpGet) {
-        var artifactsJson = restTemplateDefault.getForObject(agreementResponse.getSelfHref() + "/artifacts", JsonNode.class);
-        var dataUrl = artifactsJson.get("_embedded").get("artifacts").get(0).get("_links").get("self").get("href").asText() + "/data";
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(dataUrl)
+        var artifactsJson = Optional.ofNullable(
+                restTemplateDefault.getForObject(agreementResponse.getSelfHref() + "/artifacts", JsonNode.class)
+        );
+        var dataUrl = artifactsJson.map(aj -> aj.get("_embedded"))
+                .map(em -> em.get("artifacts"))
+                .map(a -> a.get(0))
+                .map(z -> z.get("_links"))
+                .map(l -> l.get("self"))
+                .map(s -> s.get("href"))
+                .map(JsonNode::asText)
+                .map(s -> s.concat("/data"))
+                .orElseThrow( () -> new RuntimeException("Couldn't construct data retrieval URL from Artifact JSON"));
+        var builder = UriComponentsBuilder.fromHttpUrl(dataUrl)
                 .queryParam("agreementUri", agreementResponse.getRemoteId())
                 .queryParam("download", true);
         return httpGet.apply(builder.toUriString());

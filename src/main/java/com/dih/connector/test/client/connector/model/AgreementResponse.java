@@ -1,14 +1,10 @@
 package com.dih.connector.test.client.connector.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-
-import java.net.URI;
-import java.time.ZonedDateTime;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
